@@ -53,9 +53,10 @@ bool dfs(int v, ll flow) {
 // Nicht vergessen, s und t zu setzen!
 void dinic() {
   for (lim = (1LL << 62); lim >= 1;) {
-    if (!bfs()) { lim /= 2; continue; }
-    for (int i = 0; i < n; i++) pt[i] = 0;
-    int pushed;
-    while ((pushed = dfs(s, lim))) flow += lim;
+    while (bfs()) {
+      fill(pt, pt+n, 0);
+      int pushed;
+      while ((pushed = dfs(s, lim))) flow += lim; 
+    }
   }
 }
