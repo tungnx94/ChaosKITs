@@ -1,6 +1,11 @@
 // Komplexe Zahlen als Darstellung für Punkte. Wenn immer möglich
 // complex<int> verwenden. Funktionen wie abs() geben dann int zurück.
 typedef complex<double> pt;
+typedef pair<double, double> pdd;
+
+pdd asPair(point a) { return pdd(real(a), imag(a));	}
+
+pt asPoint(pdd a) {	return pt(a.fs, a.sc);	}
 
 // Winkel zwischen Punkt und x-Achse in [0, 2 * PI).
 double angle = arg(a);
@@ -61,29 +66,27 @@ bool lineSegmentIntersection(pt a, pt b, pt c, pt d) {
 // keinen Punkt, den einzigen Schnittpunkt oder die Endpunkte der
 // Schnittstrecke. operator<, min, max müssen noch geschrieben werden!
 vector<pt> lineSegmentIntersection(pt a, pt b, pt c, pt d) {
-	vector<pt> result;
-	if (orientation(a, b, c) == 0 && orientation(a, b, d) == 0 &&
-			orientation(c, d, a) == 0 && orientation(c, d, b) == 0) {
-		pt minAB = min(a, b), maxAB = max(a, b);
-		pt minCD = min(c, d), maxCD = max(c, d);
-		if (minAB < minCD && maxAB < minCD) return result;
-		if (minCD < minAB && maxCD < minAB) return result;
-		pt start = max(minAB, minCD), end = min(maxAB, maxCD);
-		result.push_back(start);
-		if (start != end) result.push_back(end); 
-		return result;
+	vector<pt> res;
+	if (orientation(a,b,c)==0 && orientation(a,b,d)==0 && orientation(c,d,a)==0) {	//coplanar
+		pdd pa=asPair(a), pb=asPair(b), pc=asPair(c), pd=asPair(d);
+		pdd minAB=min(pa, pb), maxAB=max(pa, pb);
+		pdd minCD=min(pc, pd), maxCD=max(pc, pd);
+		if (maxAB<minCD || maxCD<minAB) return res;
+
+		pt start=asPoint(max(minAB, minCD)), end=asPoint(min(maxAB, maxCD));
+		res.pb(start);
+		if (abs(start-end) > EPS) res.pb(end);
 	}
-	double x1 = real(b) - real(a), y1 = imag(b) - imag(a);
-	double x2 = real(d) - real(c), y2 = imag(d) - imag(c);
-	double u1 = (-y1 * (real(a) - real(c)) + x1 * (imag(a) - imag(c))) /
-			(-x2 * y1 + x1 * y2);
-	double u2 = (x2 * (imag(a) - imag(c)) - y2 * (real(a) - real(c))) /
-			(-x2 * y1 + x1 * y2);
-	if (u1 >= 0 && u1 <= 1 && u2 >= 0 && u2 <= 1) {
-		double x = real(a) + u2 * x1, y = imag(a) + u2 * y1;
-		result.push_back(pt(x, y));
+	else { //1 intersection
+		pt p1=b-a, p2=d-c;
+		double u1 = cross(p1, a-c) / cross(p1,p2);
+		double u2 = cross(p2, a-c) / cross(p1,p2);
+		if (min(u1,u2)>=0 && max(u1,u2)<=1) {
+			pt intersect = a + u2*p1;
+			res.pb(intersect);
+		}
 	}
-	return result;
+	return res;
 }
 
 // Entfernung von Punkt p zur Gearden durch a-b.
@@ -109,11 +112,9 @@ bool pointOnLineSegment(pt a, pt b, pt p) {
 double distToSegment(pt a, pt b, pt p) {
   if (a == b) return abs(p - a);
   double segLength = abs(a - b);
-	double u = ((real(p) - real(a)) * (real(b) - real(a)) +
-			(imag(p) - imag(a)) * (imag(b) - imag(a))) /
-			(segLength * segLength);
-  pt projection(real(a) + u * (real(b) - real(a)),
-  		imag(a) + u * (imag(b) - imag(a)));
+	double u = dot(p-a, b-a) / (seqlength*seqlength);
+
+  point projection = a + u*(b-a);
   double projectionDist = abs(p - projection);
   if (!pointOnLineSegment(a, b, projection)) projectionDist = 1e30;
   return min(projectionDist, min(abs(p - a), abs(p - b)));
